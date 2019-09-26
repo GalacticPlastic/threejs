@@ -1,0 +1,243 @@
+
+<!-- saved from url=(0035)http://127.0.0.1:5500/hardware.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title></title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: radial-gradient(#fff, #f0edc9);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+      height: 100vh;
+      width: 100vw;
+    }
+    #color-selector {
+      background: #fff;
+      border: #276b81 3px solid;
+      border-radius: 3px;
+      padding: 1rem;
+      position: absolute;
+      right: 1rem;
+      text-transform: uppercase;
+      top: 1rem;
+      z-index: 100;
+    }
+    button {
+      background: #222;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      margin: 0.5rem 0 0;
+      padding: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="color-selector">
+    <h3>Select a Color</h3>
+    <button id="bronze">Bronze</button>
+    <button id="black">Matte Black</button>
+    <button id="anodized">Anodized</button>
+    <button id="gold">Gold</button>
+    <button id="white">Matte White</button>
+  </div>
+  <script src="./scripts/three.js"></script>
+  <script src="./scripts/orbit_control.js"></script>
+  <script src="./scripts/OBJLoader.js"></script>
+  <script src="./scripts/MTLLoader.js"></script>
+  <!-- <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script> -->
+  <script>
+
+    // Create Scene where all objects and lighting goes.
+    var scene = new THREE.Scene();
+
+    // Create perspective camera. Params: Field of View (FOV), Aspect Ratio, and Near and Far Plane
+    var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 500);
+    camera.position.x = 15;
+    camera.position.y = 0;
+    camera.position.z = 0;
+
+    // WebGLRenderer provides the most flexibility. Other renderer options include SVG, 2D CSS, and 3D CSS.
+    var renderer = new THREE.WebGLRenderer(
+      {
+        alpha: true,      // Background transparency
+        antialias: true
+      }
+    );
+    var devicePixelRatio = window.devicePixelRatio || 1; // To handle high pixel density displays
+
+    // renderer.setClearColor('0xFFFFFF, 0');  // Background color.
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(devicePixelRatio);
+
+    // Create canvas element with above renderer settings.
+    document.body.appendChild(renderer.domElement);
+
+    // Make canvas responsive.
+    window.addEventListener('resize', () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      // Readjust camera aspect ratio as browser size changes.
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    });
+
+    // Needed to work out what objects in the 3D space the mouse is over, for clicking; etc.
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+
+    // Add controls
+    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;    // Damping (or inertia) can be used to give a sense of weight to the controls. Default is false.
+    controls.dampingFactor = 0.25;
+    controls.enableZoom = true;
+
+    // Add Lights to view object color. Params: Color, Intensity, Distance, and Decay.
+    var light = new THREE.PointLight(0xFFFFFF, 1, 500);
+    light.position.set(0, 10, 25);
+    scene.add(light);
+
+    var light = new THREE.DirectionalLight(0xEEEEEE, 1, 500);
+    light.position.set(50, 0, 50);
+    scene.add(light);
+
+    var light = new THREE.DirectionalLight(0xAAAAAA, 1, 50);
+    light.position.set(0, -20, 0);
+    scene.add(light);
+
+
+     // Global Object Variable
+    var hardware = new THREE.Group();
+
+    var mtlLoader = new THREE.MTLLoader();
+    mtlLoader.setTexturePath('./objects/');
+    mtlLoader.setPath('./objects/');
+    mtlLoader.load('decorative_hardware.mtl', function(materials) {
+      materials.preload();
+      console.log(materials);
+
+      // Import 3D model from .obj file.
+      var objLoader = new THREE.OBJLoader();
+      objLoader.setPath('./objects/');
+      objLoader.load('decorative_hardware.obj', function(object) {
+        object.position.x -= 1;
+        object.rotation.set(0, 0, 0);
+
+        hardware = object.getObjectByName('geo_ceilingMount_1', true);    // Assign object child to the global variable inside the callback.
+        mohawk = object.getObjectByName('geo_fur', true);
+
+        // hardware.material.color = new THREE.Color(0xffffff * Math.random()); ZOMG
+        hardware.material.color.set(0xaaaaaa);
+        mohawk.material.color.set(0x222222);
+
+        scene.add(object);
+        console.log(hardware);
+      });
+    });
+
+    // object.traverse(function (child) {
+    //   if (child instanceof THREE.Object3D) {}
+    // });
+    // object.getObjectByName('geo_ceilingMount_1').children[0].material.color.setHex( 0xff0000 );
+    // object.getObjectByName('geo_fur').children[1].material.color.setHex( 0x00ff00 );
+
+    // Prevent distortion of objects when resizing browser.
+    var render = function() {
+      // Redraws the renderer every time the browser refreshes.
+      requestAnimationFrame(render);
+
+      controls.update();
+
+      // Render the scene and camera.
+      renderer.render( scene, camera );
+    }
+
+    function colorBronze(event) {
+      event.preventDefault();   // necessary for click events.
+      console.log('Bronze selected');
+
+      hardware.material.color.setHex(0xc79726);
+      hardware.material.needsUpdate = true;
+
+      mohawk.material.color.setHex(0x222222);
+      mohawk.material.needsUpdate = true;
+    }
+
+    // function colorBlack(event) {
+    //   event.preventDefault();   // necessary for click events.
+    //   hardware.material.color.setHex(0x000000);
+    //   hardware.material.needsUpdate = true;
+
+    //   mohawk.material.color.setHex(0x111111);
+    //   mohawk.material.needsUpdate = true;
+    // }
+
+    // function colorWhite(event) {
+    //   event.preventDefault();   // necessary for click events.
+    //   hardware.material.color.setHex(0xffffff);
+    //   hardware.material.needsUpdate = true;
+
+    //   mohawk.material.color.setHex(0x111111);
+    //   mohawk.material.needsUpdate = true;
+    // }
+
+    // Animate on Click action.
+    document.getElementById('bronze').addEventListener('click', colorBronze);
+    // document.getElementById('bronze').addEventListener('click', colorBlack);
+    // document.getElementById('bronze').addEventListener('click', colorWhite);
+
+    render();
+
+    console.log("Call hardware child object outside loader")
+    console.log(hardware);
+
+  </script><canvas width="1920" height="888" style="width: 2560px; height: 1184px;"></canvas>
+<!-- Code injected by live-server -->
+<script type="text/javascript">
+	// <![CDATA[  <-- For SVG support
+	if ('WebSocket' in window) {
+		(function () {
+			function refreshCSS() {
+				var sheets = [].slice.call(document.getElementsByTagName("link"));
+				var head = document.getElementsByTagName("head")[0];
+				for (var i = 0; i < sheets.length; ++i) {
+					var elem = sheets[i];
+					var parent = elem.parentElement || head;
+					parent.removeChild(elem);
+					var rel = elem.rel;
+					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
+						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
+						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
+					}
+					parent.appendChild(elem);
+				}
+			}
+			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+			var address = protocol + window.location.host + window.location.pathname + '/ws';
+			var socket = new WebSocket(address);
+			socket.onmessage = function (msg) {
+				if (msg.data == 'reload') window.location.reload();
+				else if (msg.data == 'refreshcss') refreshCSS();
+			};
+			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
+				console.log('Live reload enabled.');
+				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
+			}
+		})();
+	}
+	else {
+		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
+	}
+	// ]]>
+</script>
+</body></html>
